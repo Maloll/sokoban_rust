@@ -33,8 +33,8 @@ fn main() {
     loop {
         if let Ok(k) = key_pressed() {
             match k {
-                'z' => jeu.MoveSoko(&0, &1),
-                's' => jeu.MoveSoko(&-1, &-1),
+                'z' => jeu.MoveSoko(&0, &-1),
+                's' => jeu.MoveSoko(&0, &1),
                 'd' => jeu.MoveSoko(&1, &0),
                 'q' => jeu.MoveSoko(&-1, &0),
                 _ => (),
@@ -113,7 +113,7 @@ impl Game {
     fn MoveSoko(&mut self, dep_x: &i32, dep_y: &i32) {
         self.sokPos.x += dep_x;
         self.sokPos.y += dep_y;
-        draw_at(self.sokPos.x as u16, self.sokPos.y as u16, SOK);
+        draw_at((self.sokPos.x) as u16, (self.sokPos.y + 9) as u16, SOK);
     }
 }
 
