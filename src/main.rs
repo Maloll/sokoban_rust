@@ -25,16 +25,17 @@ struct Game {
     map: CharTab,
     sok_pos: Pos,
     pos_cibles: Vec<Pos>,
-    victoire: bool,
+    tab_dep: Vec<char>,
 }
 
 fn main() {
+    // rawmode & alternate screen
     let mut out = stdout();
     execute!(out, EnterAlternateScreen).unwrap();
     let _ = enable_raw_mode();
 
+    // initialisation
     let mut jeu = Game::init();
-
     execute!(out, cursor::MoveTo(0, 0)).unwrap();
 
     jeu.show();
@@ -42,17 +43,17 @@ fn main() {
     loop {
         if let Ok(k) = key_pressed() {
             match k {
-                'z' => jeu.MoveSoko(0, -1),
-                's' => jeu.MoveSoko(0, 1),
-                'd' => jeu.MoveSoko(1, 0),
-                'q' => jeu.MoveSoko(-1, 0),
+                'z' => jeu.MoveSoko(0, -1, &'z'),
+                's' => jeu.MoveSoko(0, 1, &'s'),
+                'd' => jeu.MoveSoko(1, 0, &'d'),
+                'q' => jeu.MoveSoko(-1, 0, &'q'),
                 'x' => break,
                 _ => (),
             }
 
-            cibles(&jeu);
-            if victory(&jeu) {
-                println!("VICTOIRE !");
+            jeu.cibles();
+
+            if jeu.victory() {
                 break;
             }
         }
@@ -60,27 +61,19 @@ fn main() {
 
     let _ = disable_raw_mode();
     execute!(out, LeaveAlternateScreen).unwrap();
+
+    // game end
     jeu.show();
-}
-
-fn key_pressed() -> Result<char, bool> {
-    if event::poll(Duration::from_millis(10)).unwrap_or(false) {
-        if let Ok(Event::Key(key_pressed)) = event::read() {
-            if key_pressed.kind == KeyEventKind::Press {
-                return match key_pressed.code {
-                    KeyCode::Char('z') => Ok('z'),
-                    KeyCode::Char('s') => Ok('s'),
-                    KeyCode::Char('d') => Ok('d'),
-                    KeyCode::Char('q') => Ok('q'),
-                    KeyCode::Char('x') => Ok('x'),
-                    _ => Err(false),
-                };
-            }
+    if jeu.victory() {
+        println!("\nVICTOIRE !");
+        for dep in &jeu.tab_dep {
+            print!("{} ", dep);
         }
+        println!();
     }
-    Err(false)
 }
 
+// Game methods
 impl Game {
     fn init() -> Self {
         let mut map_init = vec![vec![VIDE; 15]; 15];
@@ -115,7 +108,7 @@ impl Game {
             map: map_init,
             sok_pos: pos_init,
             pos_cibles: position_cibles,
-            victoire: false,
+            tab_dep: vec![],
         }
     }
 
@@ -133,18 +126,39 @@ impl Game {
         let _ = stdout().flush();
     }
 
-    fn MoveSoko(&mut self, dep_x: i32, dep_y: i32) {
+    fn victory(&self) -> bool {
+        for pos in &self.pos_cibles {
+            if self.map[pos.y as usize][pos.x as usize] != CAISSE {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    fn cibles(&self) {
+        for pos in &self.pos_cibles {
+            if self.map[pos.y as usize][pos.x as usize] == VIDE {
+                draw_at((pos.x * 2) as u16, pos.y as u16, CIBLE);
+            }
+        }
+    }
+
+    fn MoveSoko(&mut self, dep_x: i32, dep_y: i32, key: &char) {
         let old_x = self.sok_pos.x;
         let old_y = self.sok_pos.y;
 
         let x = old_x + dep_x;
         let y = old_y + dep_y;
 
+        let cible = self.map[y as usize][x as usize];
+
+        let mut dep: char = *key;
+
+        // checking
         if x < 0 || x >= 15 || y < 0 || y >= 15 {
             return;
         }
-
-        let cible = self.map[y as usize][x as usize];
 
         if cible == MUR {
             return;
@@ -163,6 +177,7 @@ impl Game {
                 return;
             }
 
+            dep = key.to_ascii_uppercase();
             self.map[y_caisse as usize][x_caisse as usize] = CAISSE;
             draw_at((x_caisse * 2) as u16, y_caisse as u16, CAISSE);
         }
@@ -175,9 +190,12 @@ impl Game {
 
         draw_at((old_x * 2) as u16, old_y as u16, VIDE);
         draw_at((x * 2) as u16, y as u16, SOK);
+
+        self.tab_dep.push(dep);
     }
 }
 
+// functions
 fn draw_at(x: u16, y: u16, c: char) {
     let mut out = stdout();
     if c == VIDE {
@@ -189,20 +207,20 @@ fn draw_at(x: u16, y: u16, c: char) {
     execute!(stdout(), cursor::MoveTo(40, 40)).unwrap();
 }
 
-fn cibles(jeu: &Game) {
-    for pos in &jeu.pos_cibles {
-        if jeu.map[pos.y as usize][pos.x as usize] == VIDE {
-            draw_at((pos.x * 2) as u16, pos.y as u16, CIBLE);
+fn key_pressed() -> Result<char, bool> {
+    if event::poll(Duration::from_millis(10)).unwrap_or(false) {
+        if let Ok(Event::Key(key_pressed)) = event::read() {
+            if key_pressed.kind == KeyEventKind::Press {
+                return match key_pressed.code {
+                    KeyCode::Char('z') => Ok('z'),
+                    KeyCode::Char('s') => Ok('s'),
+                    KeyCode::Char('d') => Ok('d'),
+                    KeyCode::Char('q') => Ok('q'),
+                    KeyCode::Char('x') => Ok('x'),
+                    _ => Err(false),
+                };
+            }
         }
     }
-}
-
-fn victory(jeu: &Game) -> bool {
-    for pos in &jeu.pos_cibles {
-        if jeu.map[pos.y as usize][pos.x as usize] != CAISSE {
-            return false;
-        }
-    }
-
-    return true;
+    Err(false)
 }
