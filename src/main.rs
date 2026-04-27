@@ -21,6 +21,13 @@ const DOWN: dep_soko = dep_soko { x: 0, y: 1 };
 const RIGHT: dep_soko = dep_soko { x: 1, y: 0 };
 const LEFT: dep_soko = dep_soko { x: -1, y: 0 };
 
+const UP_KEY: char = 'z';
+const DOWN_KEY: char = 's';
+const LEFT_KEY: char = 'q';
+const RIGHT_KEY: char = 'd';
+const UNDO_KEY: char = 'u';
+const LEAVE_KEY: char = 'x';
+
 struct dep_soko {
     x: i32,
     y: i32,
@@ -53,12 +60,12 @@ fn main() {
     loop {
         if let Ok(k) = key_pressed() {
             match k {
-                'z' => jeu.MoveSoko(UP, 'z'),
-                's' => jeu.MoveSoko(DOWN, 's'),
-                'q' => jeu.MoveSoko(LEFT, 'q'),
-                'd' => jeu.MoveSoko(RIGHT, 'd'),
-                'u' => jeu.undo(),
-                'x' => break,
+                UP_KEY => jeu.MoveSoko(UP, UP_KEY),
+                DOWN_KEY => jeu.MoveSoko(DOWN, DOWN_KEY),
+                LEFT_KEY => jeu.MoveSoko(LEFT, LEFT_KEY),
+                RIGHT_KEY => jeu.MoveSoko(RIGHT, RIGHT_KEY),
+                UNDO_KEY => jeu.undo(),
+                LEAVE_KEY => break,
                 _ => (),
             }
 
@@ -70,11 +77,8 @@ fn main() {
         }
     }
 
-    let _ = disable_raw_mode();
-    execute!(out, LeaveAlternateScreen).unwrap();
-
     // game end
-    jeu.show();
+    let _ = disable_raw_mode();
     if jeu.victory() {
         println!("\nVICTOIRE !");
         for dep in &jeu.tab_dep {
@@ -158,15 +162,15 @@ impl Game {
     fn undo(&mut self) {
         /*let dep: char = self.tab_dep.pop().unwrap();
         match dep {
-            'z' => {draw_at((self.sok_pos.x * 2) as u16, self.sok_pos.y as u16, CAISSE);
+            UP_KEY => {draw_at((self.sok_pos.x * 2) as u16, self.sok_pos.y as u16, CAISSE);
                     draw_at((self.sok_pos.x + DOWN.x * 2) as u16, (self.sok_pos.y + DOWN.y) as u16, SOK);},
-            's' => ,
-            'd' => ,
-            'q' => ,
-            'Z' => ,
-            'S' => ,
-            'D' => ,
-            'Q' => ,
+            DOWN_KEY => ,
+            RIGHT_KEY => ,
+            LEFT_KEY => ,
+            UP_KEY => ,
+            DOWN_KEY => ,
+            RIGHT_KEY => ,
+            LEFT_KEY => ,
             _ => (),
         }*/
     }
@@ -239,12 +243,12 @@ fn key_pressed() -> Result<char, bool> {
         if let Ok(Event::Key(key_pressed)) = event::read() {
             if key_pressed.kind == KeyEventKind::Press {
                 return match key_pressed.code {
-                    KeyCode::Char('z') => Ok('z'),
-                    KeyCode::Char('s') => Ok('s'),
-                    KeyCode::Char('d') => Ok('d'),
-                    KeyCode::Char('q') => Ok('q'),
-                    KeyCode::Char('x') => Ok('x'),
-                    KeyCode::Char('u') => Ok('u'),
+                    KeyCode::Char(UP_KEY) => Ok(UP_KEY),
+                    KeyCode::Char(DOWN_KEY) => Ok(DOWN_KEY),
+                    KeyCode::Char(RIGHT_KEY) => Ok(RIGHT_KEY),
+                    KeyCode::Char(LEFT_KEY) => Ok(LEFT_KEY),
+                    KeyCode::Char(LEAVE_KEY) => Ok(LEAVE_KEY),
+                    KeyCode::Char(UNDO_KEY) => Ok(UNDO_KEY),
                     _ => Err(false),
                 };
             }
