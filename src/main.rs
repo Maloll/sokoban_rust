@@ -8,7 +8,7 @@ use crossterm::{
 use std::io::{Write, stdout};
 use std::time::Duration;
 
-type CharTab = Vec<Vec<char>>;
+type tab2D = Vec<Vec<char>>;
 
 const SOK: char = '💂';
 const CAISSE: char = '📦';
@@ -16,13 +16,23 @@ const MUR: char = '⬛';
 const CIBLE: char = '🔸';
 const VIDE: char = ' ';
 
+const UP: dep_soko = dep_soko { x: 0, y: -1 };
+const DOWN: dep_soko = dep_soko { x: 0, y: 1 };
+const RIGHT: dep_soko = dep_soko { x: 1, y: 0 };
+const LEFT: dep_soko = dep_soko { x: -1, y: 0 };
+
+struct dep_soko {
+    x: i32,
+    y: i32,
+}
+
 struct Pos {
     x: i32,
     y: i32,
 }
 
 struct Game {
-    map: CharTab,
+    map: tab2D,
     sok_pos: Pos,
     pos_cibles: Vec<Pos>,
     tab_dep: Vec<char>,
@@ -43,10 +53,11 @@ fn main() {
     loop {
         if let Ok(k) = key_pressed() {
             match k {
-                'z' => jeu.MoveSoko(0, -1, &'z'),
-                's' => jeu.MoveSoko(0, 1, &'s'),
-                'd' => jeu.MoveSoko(1, 0, &'d'),
-                'q' => jeu.MoveSoko(-1, 0, &'q'),
+                'z' => jeu.MoveSoko(UP, 'z'),
+                's' => jeu.MoveSoko(DOWN, 's'),
+                'q' => jeu.MoveSoko(LEFT, 'q'),
+                'd' => jeu.MoveSoko(RIGHT, 'd'),
+                'u' => jeu.undo(),
                 'x' => break,
                 _ => (),
             }
@@ -144,16 +155,32 @@ impl Game {
         }
     }
 
-    fn MoveSoko(&mut self, dep_x: i32, dep_y: i32, key: &char) {
+    fn undo(&mut self) {
+        /*let dep: char = self.tab_dep.pop().unwrap();
+        match dep {
+            'z' => {draw_at((self.sok_pos.x * 2) as u16, self.sok_pos.y as u16, CAISSE);
+                    draw_at((self.sok_pos.x + DOWN.x * 2) as u16, (self.sok_pos.y + DOWN.y) as u16, SOK);},
+            's' => ,
+            'd' => ,
+            'q' => ,
+            'Z' => ,
+            'S' => ,
+            'D' => ,
+            'Q' => ,
+            _ => (),
+        }*/
+    }
+
+    fn MoveSoko(&mut self, dep_sok: dep_soko, key: char) {
         let old_x = self.sok_pos.x;
         let old_y = self.sok_pos.y;
 
-        let x = old_x + dep_x;
-        let y = old_y + dep_y;
+        let x = old_x + dep_sok.x;
+        let y = old_y + dep_sok.y;
 
         let cible = self.map[y as usize][x as usize];
 
-        let mut dep: char = *key;
+        let mut dep: char = key;
 
         // checking
         if x < 0 || x >= 15 || y < 0 || y >= 15 {
@@ -165,8 +192,8 @@ impl Game {
         }
 
         if cible == CAISSE {
-            let x_caisse = x + dep_x;
-            let y_caisse = y + dep_y;
+            let x_caisse = x + dep_sok.x;
+            let y_caisse = y + dep_sok.y;
 
             if x_caisse < 0 || x_caisse >= 15 || y_caisse < 0 || y_caisse >= 15 {
                 return;
@@ -217,6 +244,7 @@ fn key_pressed() -> Result<char, bool> {
                     KeyCode::Char('d') => Ok('d'),
                     KeyCode::Char('q') => Ok('q'),
                     KeyCode::Char('x') => Ok('x'),
+                    KeyCode::Char('u') => Ok('u'),
                     _ => Err(false),
                 };
             }
