@@ -28,6 +28,11 @@ const RIGHT_KEY: char = 'd';
 const UNDO_KEY: char = 'u';
 const LEAVE_KEY: char = 'x';
 
+const CAISSE_UP: char = UP_KEY.to_ascii_uppercase();
+const CAISSE_DOWN: char = DOWN_KEY.to_ascii_uppercase();
+const CAISSE_LEFT: char = LEFT_KEY.to_ascii_uppercase();
+const CAISSE_RIGHT: char = RIGHT_KEY.to_ascii_uppercase();
+
 struct dep_soko {
     x: i32,
     y: i32,
@@ -159,20 +164,43 @@ impl Game {
         }
     }
 
+    fn update_tile(&mut self, x: i32, y: i32, tile: char) {
+        self.map[y as usize][x as usize] = tile;
+        draw_at((x * 2) as u16, y as u16, tile);
+    }
+
     fn undo(&mut self) {
-        /*let dep: char = self.tab_dep.pop().unwrap();
+        let dep: char = self.tab_dep.pop().unwrap();
         match dep {
-            UP_KEY => {draw_at((self.sok_pos.x * 2) as u16, self.sok_pos.y as u16, CAISSE);
-                    draw_at((self.sok_pos.x + DOWN.x * 2) as u16, (self.sok_pos.y + DOWN.y) as u16, SOK);},
-            DOWN_KEY => ,
-            RIGHT_KEY => ,
-            LEFT_KEY => ,
-            UP_KEY => ,
-            DOWN_KEY => ,
-            RIGHT_KEY => ,
-            LEFT_KEY => ,
+            UP_KEY => (),
+            DOWN_KEY => (),
+            RIGHT_KEY => (),
+            LEFT_KEY => (),
+            CAISSE_UP => {
+                // suppression de l'ancienne caisse
+                draw_at(
+                    ((self.sok_pos.x + UP.x) * 2) as u16,
+                    (self.sok_pos.y + UP.y) as u16,
+                    VIDE,
+                );
+                self.map[(self.sok_pos.y + UP.y) as usize][(self.sok_pos.x + UP.x) as usize] = VIDE;
+
+                // ajout de la nouvelle caisse
+                draw_at((self.sok_pos.x * 2) as u16, self.sok_pos.y as u16, CAISSE);
+                self.map[self.sok_pos.y as usize][self.sok_pos.x as usize] = CAISSE;
+
+                self.sok_pos.x += DOWN.x;
+                self.sok_pos.y += DOWN.y;
+
+                // deplacement de sokoban
+                draw_at((self.sok_pos.x * 2) as u16, (self.sok_pos.y) as u16, SOK);
+                self.map[(self.sok_pos.y) as usize][(self.sok_pos.x) as usize] = SOK;
+            }
+            CAISSE_DOWN => (),
+            CAISSE_RIGHT => (),
+            CAISSE_LEFT => (),
             _ => (),
-        }*/
+        }
     }
 
     fn MoveSoko(&mut self, dep_sok: dep_soko, key: char) {
@@ -209,18 +237,14 @@ impl Game {
             }
 
             dep = key.to_ascii_uppercase();
-            self.map[y_caisse as usize][x_caisse as usize] = CAISSE;
-            draw_at((x_caisse * 2) as u16, y_caisse as u16, CAISSE);
+            self.update_tile(x_caisse, y_caisse, CAISSE);
         }
-
-        self.map[old_y as usize][old_x as usize] = VIDE;
-        self.map[y as usize][x as usize] = SOK;
 
         self.sok_pos.x = x;
         self.sok_pos.y = y;
 
-        draw_at((old_x * 2) as u16, old_y as u16, VIDE);
-        draw_at((x * 2) as u16, y as u16, SOK);
+        self.update_tile(old_x, old_y, VIDE);
+        self.update_tile(x, y, SOK);
 
         self.tab_dep.push(dep);
     }
@@ -255,4 +279,14 @@ fn key_pressed() -> Result<char, bool> {
         }
     }
     Err(false)
+}
+
+fn dep_inverse(c: char) -> Result<dep_soko, bool> {
+    match c {
+        UP_KEY => Ok(DOWN),
+        DOWN_KEY => Ok(UP),
+        LEFT_KEY => Ok(RIGHT),
+        RIGHT_KEY => Ok(RIGHT),
+        _ => Err(false),
+    }
 }
