@@ -76,9 +76,11 @@ fn main() {
     let mut jeu = Game::init();
     execute!(out, cursor::MoveTo(0, 0)).unwrap();
 
+    jeu.header();
     jeu.show();
 
     loop {
+        let old_tab_len = jeu.tab_dep.len();
         if let Ok(k) = key_pressed() {
             match k {
                 x if x == UP.key => jeu.move_soko(UP.dep, UP.key),
@@ -95,6 +97,14 @@ fn main() {
             }
 
             jeu.cibles();
+
+            let tab_len = jeu.tab_dep.len();
+            if tab_len != old_tab_len {
+                draw_dep(23, 1, &tab_len.to_string());
+                if tab_len < 10 {
+                    draw_dep(24, 1, " ");
+                }
+            }
 
             if jeu.victory() {
                 break;
@@ -150,6 +160,11 @@ impl Game {
             pos_cibles: position_cibles,
             tab_dep: vec![],
         }
+    }
+
+    fn header(&self) {
+        println!("Sokoban");
+        println!("Nombre de mouvements : {}", self.tab_dep.len());
     }
 
     fn show(&self) {
@@ -267,12 +282,23 @@ impl Game {
 fn draw_at(x: u16, y: u16, c: char) {
     let mut out = stdout();
     if c == VIDE {
-        execute!(out, cursor::MoveTo(x, y), Print("  ")).unwrap();
+        execute!(out, cursor::MoveTo(x, y + 2), Print("  ")).unwrap();
     } else {
-        execute!(out, cursor::MoveTo(x, y), Print(c)).unwrap();
+        execute!(out, cursor::MoveTo(x, y + 2), Print(c)).unwrap();
     }
     let _ = out.flush();
-    execute!(stdout(), cursor::MoveTo(40, 40)).unwrap();
+    execute!(stdout(), cursor::MoveTo(0, 0)).unwrap();
+}
+
+fn draw_dep(x: u16, y: u16, text: &str) {
+    let mut out = stdout();
+    if text == "0" {
+        execute!(out, cursor::MoveTo(x, y), Print("  ")).unwrap();
+    } else {
+        execute!(out, cursor::MoveTo(x, y), Print(text)).unwrap();
+    }
+    let _ = out.flush();
+    execute!(stdout(), cursor::MoveTo(0, 0)).unwrap();
 }
 
 fn key_pressed() -> Result<char, bool> {
