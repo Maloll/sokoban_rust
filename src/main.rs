@@ -16,27 +16,43 @@ const MUR: char = '⬛';
 const CIBLE: char = '🔸';
 const VIDE: char = ' ';
 
-const UP: dep_soko = dep_soko { x: 0, y: -1 };
-const DOWN: dep_soko = dep_soko { x: 0, y: 1 };
-const RIGHT: dep_soko = dep_soko { x: 1, y: 0 };
-const LEFT: dep_soko = dep_soko { x: -1, y: 0 };
-
-const UP_KEY: char = 'z';
-const DOWN_KEY: char = 's';
-const LEFT_KEY: char = 'q';
-const RIGHT_KEY: char = 'd';
-const UNDO_KEY: char = 'u';
-const LEAVE_KEY: char = 'x';
-
-const CAISSE_UP: char = UP_KEY.to_ascii_uppercase();
-const CAISSE_DOWN: char = DOWN_KEY.to_ascii_uppercase();
-const CAISSE_LEFT: char = LEFT_KEY.to_ascii_uppercase();
-const CAISSE_RIGHT: char = RIGHT_KEY.to_ascii_uppercase();
-
-struct dep_soko {
+struct DepSoko {
     x: i32,
     y: i32,
 }
+
+struct Direction {
+    dep: DepSoko,
+    key: char,
+    caisse: char,
+}
+
+const UP: Direction = Direction {
+    dep: DepSoko { x: 0, y: -1 },
+    key: 'z',
+    caisse: 'Z',
+};
+
+const DOWN: Direction = Direction {
+    dep: DepSoko { x: 0, y: 1 },
+    key: 's',
+    caisse: 'S',
+};
+
+const LEFT: Direction = Direction {
+    dep: DepSoko { x: -1, y: 0 },
+    key: 'q',
+    caisse: 'Q',
+};
+
+const RIGHT: Direction = Direction {
+    dep: DepSoko { x: 1, y: 0 },
+    key: 'd',
+    caisse: 'D',
+};
+
+const UNDO_KEY: char = 'u';
+const LEAVE_KEY: char = 'x';
 
 struct Pos {
     x: i32,
@@ -65,10 +81,10 @@ fn main() {
     loop {
         if let Ok(k) = key_pressed() {
             match k {
-                UP_KEY => jeu.MoveSoko(UP, UP_KEY),
-                DOWN_KEY => jeu.MoveSoko(DOWN, DOWN_KEY),
-                LEFT_KEY => jeu.MoveSoko(LEFT, LEFT_KEY),
-                RIGHT_KEY => jeu.MoveSoko(RIGHT, RIGHT_KEY),
+                x if x == UP.key => jeu.MoveSoko(UP.dep, UP.key),
+                x if x == DOWN.key => jeu.MoveSoko(DOWN.dep, DOWN.key),
+                x if x == LEFT.key => jeu.MoveSoko(LEFT.dep, LEFT.key),
+                x if x == RIGHT.key => jeu.MoveSoko(RIGHT.dep, RIGHT.key),
                 UNDO_KEY => jeu.undo(),
                 LEAVE_KEY => break,
                 _ => (),
@@ -170,40 +186,24 @@ impl Game {
     }
 
     fn undo(&mut self) {
-        let dep: char = self.tab_dep.pop().unwrap();
-        match dep {
-            UP_KEY => (),
-            DOWN_KEY => (),
-            RIGHT_KEY => (),
-            LEFT_KEY => (),
-            CAISSE_UP => {
-                // suppression de l'ancienne caisse
-                draw_at(
-                    ((self.sok_pos.x + UP.x) * 2) as u16,
-                    (self.sok_pos.y + UP.y) as u16,
-                    VIDE,
-                );
-                self.map[(self.sok_pos.y + UP.y) as usize][(self.sok_pos.x + UP.x) as usize] = VIDE;
+        let key: char = self.tab_dep.pop().unwrap();
+        let (dep, direct) = dep_inverse(key).unwrap();
 
-                // ajout de la nouvelle caisse
-                draw_at((self.sok_pos.x * 2) as u16, self.sok_pos.y as u16, CAISSE);
-                self.map[self.sok_pos.y as usize][self.sok_pos.x as usize] = CAISSE;
-
-                self.sok_pos.x += DOWN.x;
-                self.sok_pos.y += DOWN.y;
-
-                // deplacement de sokoban
-                draw_at((self.sok_pos.x * 2) as u16, (self.sok_pos.y) as u16, SOK);
-                self.map[(self.sok_pos.y) as usize][(self.sok_pos.x) as usize] = SOK;
-            }
-            CAISSE_DOWN => (),
-            CAISSE_RIGHT => (),
-            CAISSE_LEFT => (),
-            _ => (),
+        if box_moved(key) {
+            self.update_tile(self.sok_pos.x, self.sok_pos.y, CAISSE);
+            self.update_tile(self.sok_pos.x, self.sok_pos.y, VIDE);
+        } else {
+            self.update_tile(
+                (self.sok_pos.x + direct.dep.x),
+                (self.sok_pos.y + direct.dep.y),
+                VIDE,
+            );
         }
+
+        self.update_tile((self.sok_pos.x + dep.x), (self.sok_pos.y + dep.y), SOK);
     }
 
-    fn MoveSoko(&mut self, dep_sok: dep_soko, key: char) {
+    fn MoveSoko(&mut self, dep_sok: DepSoko, key: char) {
         let old_x = self.sok_pos.x;
         let old_y = self.sok_pos.y;
 
@@ -236,7 +236,10 @@ impl Game {
                 return;
             }
 
+            // uppercase == caisse bouger
             dep = key.to_ascii_uppercase();
+
+            // map + stdout update
             self.update_tile(x_caisse, y_caisse, CAISSE);
         }
 
@@ -267,10 +270,10 @@ fn key_pressed() -> Result<char, bool> {
         if let Ok(Event::Key(key_pressed)) = event::read() {
             if key_pressed.kind == KeyEventKind::Press {
                 return match key_pressed.code {
-                    KeyCode::Char(UP_KEY) => Ok(UP_KEY),
-                    KeyCode::Char(DOWN_KEY) => Ok(DOWN_KEY),
-                    KeyCode::Char(RIGHT_KEY) => Ok(RIGHT_KEY),
-                    KeyCode::Char(LEFT_KEY) => Ok(LEFT_KEY),
+                    x if x == KeyCode::Char(UP.key) => Ok(UP.key),
+                    x if x == KeyCode::Char(DOWN.key) => Ok(DOWN.key),
+                    x if x == KeyCode::Char(RIGHT.key) => Ok(RIGHT.key),
+                    x if x == KeyCode::Char(LEFT.key) => Ok(LEFT.key),
                     KeyCode::Char(LEAVE_KEY) => Ok(LEAVE_KEY),
                     KeyCode::Char(UNDO_KEY) => Ok(UNDO_KEY),
                     _ => Err(false),
@@ -280,13 +283,15 @@ fn key_pressed() -> Result<char, bool> {
     }
     Err(false)
 }
-
-fn dep_inverse(c: char) -> Result<dep_soko, bool> {
-    match c {
-        UP_KEY => Ok(DOWN),
-        DOWN_KEY => Ok(UP),
-        LEFT_KEY => Ok(RIGHT),
-        RIGHT_KEY => Ok(RIGHT),
+fn dep_inverse(c: char) -> Result<(DepSoko, Direction), bool> {
+    match c.to_ascii_lowercase() {
+        x if x == UP.key => Ok((DOWN.dep, UP)),
+        x if x == DOWN.key => Ok((UP.dep, DOWN)),
+        x if x == LEFT.key => Ok((RIGHT.dep, LEFT)),
+        x if x == RIGHT.key => Ok((LEFT.dep, RIGHT)),
         _ => Err(false),
     }
+}
+fn box_moved(c: char) -> bool {
+    return c == UP.caisse || c == DOWN.caisse || c == LEFT.caisse || c == RIGHT.caisse;
 }
