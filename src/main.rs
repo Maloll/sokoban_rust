@@ -3,12 +3,12 @@ use crossterm::{
     event::{self, Event, KeyCode, KeyEventKind},
     execute,
     style::Print,
-    terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
+    terminal::{EnterAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
 use std::io::{Write, stdout};
 use std::time::Duration;
 
-type tab2D = Vec<Vec<char>>;
+type Tab2d = Vec<Vec<char>>;
 
 const SOK: char = '💂';
 const CAISSE: char = '📦';
@@ -60,7 +60,7 @@ struct Pos {
 }
 
 struct Game {
-    map: tab2D,
+    map: Tab2d,
     sok_pos: Pos,
     pos_cibles: Vec<Pos>,
     tab_dep: Vec<char>,
@@ -81,11 +81,15 @@ fn main() {
     loop {
         if let Ok(k) = key_pressed() {
             match k {
-                x if x == UP.key => jeu.MoveSoko(UP.dep, UP.key),
-                x if x == DOWN.key => jeu.MoveSoko(DOWN.dep, DOWN.key),
-                x if x == LEFT.key => jeu.MoveSoko(LEFT.dep, LEFT.key),
-                x if x == RIGHT.key => jeu.MoveSoko(RIGHT.dep, RIGHT.key),
-                UNDO_KEY => jeu.undo(),
+                x if x == UP.key => jeu.move_soko(UP.dep, UP.key),
+                x if x == DOWN.key => jeu.move_soko(DOWN.dep, DOWN.key),
+                x if x == LEFT.key => jeu.move_soko(LEFT.dep, LEFT.key),
+                x if x == RIGHT.key => jeu.move_soko(RIGHT.dep, RIGHT.key),
+                UNDO_KEY => {
+                    if jeu.tab_dep.len() > 0 {
+                        jeu.undo()
+                    }
+                }
                 LEAVE_KEY => break,
                 _ => (),
             }
@@ -189,21 +193,27 @@ impl Game {
         let key: char = self.tab_dep.pop().unwrap();
         let (dep, direct) = dep_inverse(key).unwrap();
 
+        let x = self.sok_pos.x;
+        let y = self.sok_pos.y;
+
+        let new_x = x + dep.x;
+        let new_y = y + dep.y;
+
         if box_moved(key) {
-            self.update_tile(self.sok_pos.x, self.sok_pos.y, CAISSE);
-            self.update_tile(self.sok_pos.x, self.sok_pos.y, VIDE);
+            // on mets la caisse a la pos du sokoban
+            self.update_tile(x, y, CAISSE);
+            self.update_tile(x + direct.dep.x, y + direct.dep.y, VIDE);
         } else {
-            self.update_tile(
-                (self.sok_pos.x + direct.dep.x),
-                (self.sok_pos.y + direct.dep.y),
-                VIDE,
-            );
+            self.update_tile(x, y, VIDE);
         }
 
-        self.update_tile((self.sok_pos.x + dep.x), (self.sok_pos.y + dep.y), SOK);
+        self.sok_pos.x = new_x;
+        self.sok_pos.y = new_y;
+
+        self.update_tile(self.sok_pos.x, self.sok_pos.y, SOK);
     }
 
-    fn MoveSoko(&mut self, dep_sok: DepSoko, key: char) {
+    fn move_soko(&mut self, dep_sok: DepSoko, key: char) {
         let old_x = self.sok_pos.x;
         let old_y = self.sok_pos.y;
 
