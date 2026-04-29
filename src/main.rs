@@ -214,9 +214,6 @@ impl Game {
         let x = self.sok_pos.x;
         let y = self.sok_pos.y;
 
-        let new_x = x + dep.x;
-        let new_y = y + dep.y;
-
         if box_moved(key) {
             // on mets la caisse a la pos du sokoban
             self.update_tile(x, y, CAISSE);
@@ -225,8 +222,8 @@ impl Game {
             self.update_tile(x, y, VIDE);
         }
 
-        self.sok_pos.x = new_x;
-        self.sok_pos.y = new_y;
+        self.sok_pos.x = x + dep.x;
+        self.sok_pos.y = y + dep.y;
 
         self.update_tile(self.sok_pos.x, self.sok_pos.y, SOK);
     }
