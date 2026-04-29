@@ -3,7 +3,7 @@ use crossterm::{
     event::{self, Event, KeyCode, KeyEventKind},
     execute,
     style::Print,
-    terminal::{EnterAlternateScreen, disable_raw_mode, enable_raw_mode},
+    terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
 use std::io::{Write, stdout};
 use std::time::Duration;
@@ -114,6 +114,9 @@ fn main() {
 
     // game end
     let _ = disable_raw_mode();
+    execute!(out, LeaveAlternateScreen).unwrap();
+
+    //si victoire
     if jeu.victory() {
         println!("\nVICTOIRE !");
         for dep in &jeu.tab_dep {
